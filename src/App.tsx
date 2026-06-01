@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const githubUser = "ClemNTTS";
 const repoApiUrl = `https://api.github.com/users/${githubUser}/repos?sort=updated&per_page=100`;
+const chatApiUrl =
+  import.meta.env.VITE_CHAT_API_URL ||
+  (window.location.hostname.endsWith("netlify.app") ? "/api/chat" : "https://clemntts.netlify.app/api/chat");
 
 type ProjectKind = "all" | "ia" | "jeu" | "outil";
 
@@ -175,7 +178,7 @@ function normalizeRepos(repos: GitHubRepo[]): ProjectRepo[] {
 }
 
 async function askAssistant(question: string, repos: ProjectRepo[]) {
-  const response = await fetch("/api/chat", {
+  const response = await fetch(chatApiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

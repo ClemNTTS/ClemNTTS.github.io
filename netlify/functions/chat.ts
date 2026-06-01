@@ -19,12 +19,18 @@ type ChatRequest = {
 
 const MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions";
 const defaultModel = "mistral-small-2603";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 function json(statusCode: number, body: unknown) {
   return {
     statusCode,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
+      ...corsHeaders,
     },
     body: JSON.stringify(body),
   };
@@ -67,6 +73,14 @@ async function loadKnowledge() {
 }
 
 export const handler: Handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: "",
+    };
+  }
+
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Methode non supportee." });
   }
