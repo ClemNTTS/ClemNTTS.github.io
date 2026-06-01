@@ -103,6 +103,7 @@ const stackItems = [
   ["Backend & data", "Node.js, FastAPI, SQLAlchemy, PostgreSQL"],
   ["Frontend & jeu", "HTML, CSS, Canvas, Phaser, GitHub Pages"],
   ["IA / data", "PyTorch, Pandas, LangChain, scikit-learn"],
+  ["Cloud & DevOps", "Azure, Terraform, CI/CD, GitHub Actions"],
   ["Environnement", "Git, Docker, Linux, Neovim, VS Code"],
 ] as const;
 
