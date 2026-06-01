@@ -630,19 +630,73 @@ meter::-webkit-meter-optimum-value {
   color: var(--green);
 }
 
-.fake-input {
-  min-height: 46px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  color: #f0ead8;
-  background: rgba(243, 239, 226, 0.06);
-}
-
 #assistant-preview {
   min-height: 44px;
   border: 1px solid var(--green);
   color: #09100b;
   background: var(--green);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+#assistant-preview:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.chat-log {
+  display: grid;
+  max-height: 260px;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.chat-message {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  color: #f0ead8;
+  background: rgba(243, 239, 226, 0.06);
+  font-size: 0.82rem;
+}
+
+.chat-message span,
+.chat-input-label {
+  color: var(--green);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.chat-message.user {
+  border-color: rgba(255, 111, 97, 0.38);
+  background: rgba(255, 111, 97, 0.08);
+}
+
+#chat-question {
+  width: 100%;
+  min-height: 86px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: rgba(243, 239, 226, 0.06);
+  font: inherit;
+  line-height: 1.5;
+  padding: 12px;
+}
+
+#chat-question:focus {
+  border-color: var(--green);
+  outline: none;
+}
+
+.prompt-chip {
+  min-height: 38px;
+  border: 1px solid rgba(255, 111, 97, 0.62);
+  color: var(--coral);
+  background: transparent;
   cursor: pointer;
   font-weight: 800;
 }

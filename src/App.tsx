@@ -32,6 +32,11 @@ type NodeSlot = {
   y: number;
 };
 
+type ChatMessage = {
+  role: "assistant" | "user";
+  content: string;
+};
+
 const fallbackRepos: GitHubRepo[] = [
   {
     name: "sort-me",
@@ -169,6 +174,35 @@ function normalizeRepos(repos: GitHubRepo[]): ProjectRepo[] {
     });
 }
 
+async function askAssistant(question: string, repos: ProjectRepo[]) {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      question,
+      projects: repos.map((repo) => ({
+        name: repo.name,
+        description: repo.summary,
+        language: repo.language,
+        kind: repo.kind,
+        url: repo.html_url,
+        homepage: repo.homepage,
+        tags: repo.tags,
+      })),
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as { answer?: string; error?: string } | null;
+
+  if (!response.ok || !payload?.answer) {
+    throw new Error(payload?.error || "L'assistant n'a pas repondu.");
+  }
+
+  return payload.answer;
+}
+
 function SignalField() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -250,9 +284,15 @@ function App() {
   const [repoSource, setRepoSource] = useState<"GitHub" | "secours">("secours");
   const [activeFilter, setActiveFilter] = useState<ProjectKind>("all");
   const [activeProject, setActiveProject] = useState("core");
-  const [assistantAnswer, setAssistantAnswer] = useState(
-    "Module en veille. Il attend son modele, son contexte et une bonne raison de parler.",
-  );
+  const [chatInput, setChatInput] = useState("Pourquoi ce projet t'a marque ?");
+  const [chatStatus, setChatStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      content:
+        "Je peux repondre sur Clement, ses projets, sa stack et son parcours. Sur GitHub Pages je suis en veille; sur Netlify je parle via Mistral.",
+    },
+  ]);
 
   useEffect(() => {
     let ignore = false;
@@ -420,7 +460,7 @@ function App() {
                       <span className="node-icon">{repo.glyph}</span>
                       <strong>{repo.name}</strong>
                       <small>
-                        {repo.language || repo.kind} · {repoSource}
+                        {repo.language || repo.kind} - {repoSource}
                       </small>
                     </button>
                   );
@@ -485,23 +525,73 @@ function App() {
 
           <div className="assistant-panel" id="assistant">
             <h2>Assistant IA</h2>
-            <div className="assistant-console">
+            <form
+              className="assistant-console"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const question = chatInput.trim();
+                if (!question || chatStatus === "loading") return;
+
+                setChatMessages((messages) => [...messages, { role: "user", content: question }]);
+                setChatInput("");
+                setChatStatus("loading");
+
+                void askAssistant(question, repos)
+                  .then((answer) => {
+                    setChatMessages((messages) => [...messages, { role: "assistant", content: answer }]);
+                    setChatStatus("idle");
+                  })
+                  .catch(() => {
+                    setChatMessages((messages) => [
+                      ...messages,
+                      {
+                        role: "assistant",
+                        content:
+                          "Je suis pret cote interface, mais l'endpoint Netlify /api/chat n'est pas encore disponible ici. Une fois le site deploye sur Netlify avec MISTRAL_API_KEY, je repondrai en direct.",
+                      },
+                    ]);
+                    setChatStatus("error");
+                  });
+              }}
+            >
               <p className="console-green">&gt; // futur module integre</p>
               <p>Posez-moi une question sur Clement, ses projets, son parcours ou ses choix techniques.</p>
-              <div className="fake-input">Pourquoi ce projet t'a marque ?</div>
+              <div className="chat-log" aria-live="polite">
+                {chatMessages.map((message, index) => (
+                  <p className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+                    <span>{message.role === "assistant" ? "cn-assistant" : "visiteur"}</span>
+                    {message.content}
+                  </p>
+                ))}
+                {chatStatus === "loading" ? (
+                  <p className="chat-message assistant">
+                    <span>cn-assistant</span>
+                    Synchronisation avec Mistral...
+                  </p>
+                ) : null}
+              </div>
+              <label className="chat-input-label" htmlFor="chat-question">
+                Question
+              </label>
+              <textarea
+                id="chat-question"
+                value={chatInput}
+                rows={3}
+                maxLength={420}
+                onChange={(event) => setChatInput(event.target.value)}
+                placeholder="Demande-lui son projet le plus interessant, sa stack, ou ce qu'il cherche."
+              />
               <button
                 type="button"
-                id="assistant-preview"
-                onClick={() =>
-                  setAssistantAnswer(
-                    "Reponse simulee : Clement aime les projets ou l'interface raconte quelque chose, surtout quand l'IA sert un usage concret plutot qu'un effet de mode.",
-                  )
-                }
+                className="prompt-chip"
+                onClick={() => setChatInput("Quel projet represente le mieux Clement comme developpeur ?")}
               >
-                Simuler une reponse
+                Suggere-moi un angle
               </button>
-              <p className="assistant-answer">{assistantAnswer}</p>
-            </div>
+              <button type="submit" id="assistant-preview" disabled={chatStatus === "loading"}>
+                {chatStatus === "loading" ? "Transmission..." : "Envoyer au copilote"}
+              </button>
+            </form>
           </div>
         </section>
 
